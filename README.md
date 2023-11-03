@@ -20,6 +20,7 @@ Example:
 ```
 ~/minesweeper: npm start
 
+
 -   -   -   -
 
 -   -   -   -
@@ -63,7 +64,6 @@ Example:
 -   -   -   -
 
 > guess(1,1)
-
 
     1   -   -
 
