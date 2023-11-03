@@ -1,3 +1,5 @@
+REPL Minesweeper game for command line time wasting
+
 Reveal a cell:
 ```
 guess(row, col)
@@ -6,15 +8,17 @@ Start a new game:
 ```
 newgame(size)
 // board width & height = size
+// defaults to size = 4
 ```
 Auto play:
 ```
 autoguess()
-// random guess from remaining
+// random guess from remaining cells
 ```
 
 Example:
 ```
+~/minesweeper: npm start
 
 -   -   -   -
 
@@ -24,6 +28,29 @@ Example:
 
 -   -   -   -
 
+> guess(2,3)
+
+   * /  `
+ ~ . BOOM ~ *
+   ` * ~
+
+-   -   -   -
+
+-   -   X   -
+
+-   -   -   -
+
+-   -   -   -
+
+> newgame()
+
+-   -   -   -
+
+-   -   -   -
+
+-   -   -   -
+
+-   -   -   -
 
 > guess(2,3)
 
@@ -46,6 +73,7 @@ Example:
 
 -   -   -   -
 
-> 
+
+> |
 
 ```
