@@ -1,0 +1,12 @@
+{
+  "name": "minesweeper",
+  "version": "1.0.0",
+  "description": "CLI Minesweeper Game",
+  "main": "minesweeper.ts",
+  "scripts": {
+    "start": "ts-node -i -e \"$(< minesweeper.ts)\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
