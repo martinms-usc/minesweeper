@@ -1,5 +1,10 @@
 REPL Minesweeper game for command line time wasting
 
+* Variable board size
+* Amount of mines is size - 1
+* Use `autoguess()` if you're feelin' lucky
+
+
 Reveal a cell:
 ```
 guess(row, col)
