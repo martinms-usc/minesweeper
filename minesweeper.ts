@@ -1,5 +1,6 @@
 type Board = (number|string)[][];
 type Cell = [number, number];
+const MINE = 'X';
 
 class Minesweeper {
     board: Board;
@@ -45,22 +46,22 @@ class Minesweeper {
     }
     
     buildBoard(height: number, width: number, mines: number): Board {
+        const mineLocations = this.getRandomCells(height, width, mines);
         const board = new Array(height).fill(null).map(r => (
             new Array(width).fill(null)
-        ));
-        
-        const locations = this.getRandomCells(height, width, mines);
-        locations.forEach(([row, column]: [number, number]) => {
-            board[row].splice(column, 1, 'X');
+        ));        
+
+        mineLocations.forEach(([row, column]: [number, number]) => {
+            board[row].splice(column, 1, MINE);
         });
-        
-        return this.markNumbers(locations, board);;
+
+        return this.markNumbers(mineLocations, board);;
     }
     
-    markNumbers(mines: Cell[], board: (string|null)[][]) {
+    markNumbers(mines: Cell[], board: (string|null)[][]): Board {
         return board.map((row, cellRow) => {
             return row.map((val: string | null, cellColumn: number) => {
-                if (val === 'X') return 'X';
+                if (val === MINE) return MINE;
                 const bordered = mines.filter(([mineRow, mineColumn]) => { 
                     const borderX = Math.abs(cellRow - mineRow) <= 1;
                     const borderY = Math.abs(cellColumn - mineColumn) <= 1;
@@ -71,7 +72,7 @@ class Minesweeper {
         });
     }
     
-    guess(r: number, i: number) {
+    check(r: number, i: number) {
         if (r > this.height || i > this.width) {
             console.log('\x1b[31mOUT OF BOUNDS');
             return;
@@ -79,19 +80,19 @@ class Minesweeper {
         
         let result = this.reveal(r,i);
         if (result === 'LOSE') {
-           this.print('\x1b[31m');
+            this.print('\x1b[31m');
         } else {
             this.print();
         }
     }
     
-    print(color: string = '') {
+    print(prepend: string = '') {
         const board = this.win ? this.board : this.visible;
-        let s = `${color}`;
+        let s = `${prepend}`;
         board.forEach(row => {
             s += `${row.join('   ')}\n\n`;
         });
-        console.log(s)
+        console.log(s);
     }
     
     reveal(rowInput: number, colInput: number): Board | 'WIN' | 'LOSE' {
@@ -100,7 +101,7 @@ class Minesweeper {
 
         if (this.visible[row][col] === '-') {
             const val = this.board[row][col];
-            if (val === 'X') {
+            if (val === MINE) {
                 this.visible[row][col] = val;
                 console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n\x1b[0m');
                 return 'LOSE';
@@ -114,8 +115,8 @@ class Minesweeper {
                 }).bind(this));
             }
         }
-        if (this.visible[row][col] == 'X') {
-            console.log('\x1b[31m YOU LOSE ');
+        if (this.visible[row][col] == MINE) {
+            this.print('\x1b[31m YOU LOSE ');
         }
 
         if (this.checkIfDone()) {
@@ -186,8 +187,8 @@ class Minesweeper {
 let m = new Minesweeper(4, 4, 3);
 m.print();
 
-function guess (r: number, c: number) {
-    return m.guess(r,c);
+function check (r: number, c: number) {
+    return m.check(r,c);
 }
 
 function autoguess () {
@@ -210,8 +211,8 @@ function print() {
 // data structure
 // constructor(size)
 
-// obscured []
-// revealed []
+// obscured [...descriptors]
+// revealed [...]
     // cell descriptor = row:col
 // cells {
 //   descriptor: state

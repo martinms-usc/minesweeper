@@ -39,7 +39,7 @@ Example:
 
 -   -   -   -
 
-> guess(2,3)
+> check(2,3)
 
    * /  `
  ~ . BOOM ~ *
@@ -63,7 +63,7 @@ Example:
 
 -   -   -   -
 
-> guess(2,3)
+> check(2,3)
 
 -   -   -   -
 
@@ -73,7 +73,7 @@ Example:
 
 -   -   -   -
 
-> guess(1,1)
+> check(1,1)
 
     1   -   -
 
