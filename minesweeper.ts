@@ -23,19 +23,17 @@ class Minesweeper {
         let remainingCells: Cell[] = [];
         const nextGuess = (): Cell => {
             remainingCells = this.getRemainingGuesses();
-            const randomIndex = Math.floor(Math.random() * remainingCells.length);
-            return remainingCells[randomIndex];
+            return remainingCells[Math.floor(Math.random() * remainingCells.length)];
         };
         
-        let guess = nextGuess();
-        console.log(`guess: row ${guess[0]} col ${guess[1]}\n`);
-        let result = m.reveal(...guess);
+        let guess: Cell, result;
 
         while (typeof result !== 'string') {
-            this.print();
             guess = nextGuess();
             console.log(`guess: row ${guess[0]} col ${guess[1]}, ${remainingCells.length} remaining\n`);
             result = m.reveal(...guess);
+            if (typeof result !== 'string')
+                this.print();
         }
         if (typeof result == 'string') {
             if (result === 'LOSE')
@@ -58,9 +56,9 @@ class Minesweeper {
         return this.markNumbers(mineLocations, board);;
     }
     
-    markNumbers(mines: Cell[], board: (string|null)[][]): Board {
+    markNumbers(mines: Cell[], board: Board): Board {
         return board.map((row, cellRow) => {
-            return row.map((val: string | null, cellColumn: number) => {
+            return row.map((val: string | number, cellColumn: number) => {
                 if (val === MINE) return MINE;
                 const bordered = mines.filter(([mineRow, mineColumn]) => { 
                     const borderX = Math.abs(cellRow - mineRow) <= 1;
@@ -205,8 +203,7 @@ function print() {
 }
 
 
-// TODO: 
-// minesweeper in constant time
+// TODO: minesweeper in constant time
 
 // data structure
 // constructor(size)
