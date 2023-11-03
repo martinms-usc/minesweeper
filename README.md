@@ -15,6 +15,11 @@ Auto play:
 autoguess()
 // random guess from remaining cells
 ```
+Print:
+```
+print()
+// prints current state of the board
+```
 
 Example:
 ```
