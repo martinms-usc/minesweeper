@@ -1,6 +1,6 @@
 type Board = (number|string)[][];
 type Cell = [number, number];
-const MINE = 'X';
+const MINE = '*';
 
 class Minesweeper {
     board: Board;
@@ -21,17 +21,31 @@ class Minesweeper {
     
     autoGuess() {
         let remainingCells: Cell[] = [];
-        const nextGuess = (): Cell => {
-            remainingCells = this.getRemainingGuesses();
-            return remainingCells[Math.floor(Math.random() * remainingCells.length)];
+        // one of the cells with the lowest sum of bordering cells
+        const nextBestGuess = (): Cell => {
+            remainingCells = this.getRemainingCells();
+            const remainingCellDetails = remainingCells.map(([r, c]) => {
+                const borderSum = this.getNeighboringSum(r, c);
+                return {
+                    location: [r, c] as [number, number],
+                    borderSum
+                }
+            });
+            const lowestSum = remainingCellDetails.reduce((min: null | number, cell) => {
+                if (typeof min !== 'number' || cell.borderSum < min) {
+                    min = cell.borderSum;
+                }
+                return min;
+            }, null);
+            const lowestMineCounts = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
+            return lowestMineCounts[Math.floor(Math.random() * lowestMineCounts.length)].location;
         };
         
-        let guess: Cell, result;
-
+        let result;
         while (typeof result !== 'string') {
-            guess = nextGuess();
-            console.log(`guess: row ${guess[0]} col ${guess[1]}, ${remainingCells.length} remaining\n`);
-            result = m.reveal(...guess);
+            const guess = nextBestGuess();
+            console.log(`reveal: row ${guess[0]} col ${guess[1]}, ${remainingCells.length} remaining\n`);
+            result = m.reveal(++guess[0], ++guess[1]);
             if (typeof result !== 'string')
                 this.print();
         }
@@ -53,10 +67,10 @@ class Minesweeper {
             board[row].splice(column, 1, MINE);
         });
 
-        return this.markNumbers(mineLocations, board);;
+        return this.fillMineCounts(mineLocations, board);;
     }
     
-    markNumbers(mines: Cell[], board: Board): Board {
+    fillMineCounts(mines: Cell[], board: Board): Board {
         return board.map((row, cellRow) => {
             return row.map((val: string | number, cellColumn: number) => {
                 if (val === MINE) return MINE;
@@ -101,7 +115,7 @@ class Minesweeper {
             const val = this.board[row][col];
             if (val === MINE) {
                 this.visible[row][col] = val;
-                console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n\x1b[0m');
+                console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n\n');
                 return 'LOSE';
             }
             this.visible[row][col] = val;
@@ -133,19 +147,30 @@ class Minesweeper {
         );
     }
     
-    getRemainingGuesses(): Cell[] {
+    getRemainingCells(): Cell[] {
         const cells: Cell[] = [];
         
         this.visible.forEach((row, rowI) => {
             row.forEach((val, col) => {
                 if (val === '-') {
-                    cells.push([rowI+1, col+1]);
+                    cells.push([rowI, col]);
                 }
             })
         })
         return cells;
     }
     
+    getNeighboringSum(row: number, column: number): number {
+        const cells = this.getNeighboringCells(row, column);
+        return cells.reduce((t, [r, c]) => {
+            const val = this.visible[r][c];
+            if (typeof val == 'number') {
+                t += val;
+            }
+            return t;
+        }, 0);
+    }
+
     getNeighboringCells(row: number, column: number): Cell[] {
         const neighbors: Cell[] = [];
 
@@ -189,7 +214,7 @@ function check (r: number, c: number) {
     return m.check(r,c);
 }
 
-function autoguess () {
+function auto () {
     return m.autoGuess();
 }
 
