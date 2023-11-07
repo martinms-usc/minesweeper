@@ -1,6 +1,6 @@
 type Board = (number|string)[][];
 type Cell = [number, number];
-const MINE = '*';
+const MINE = '💥';
 
 class Minesweeper {
     board: Board;
@@ -228,17 +228,18 @@ function print() {
 }
 
 
-// TODO: minesweeper in constant time
+// TODO: minesweeper in linear time
 
-// data structure
+// unifying data structure instead of 2x 2-dimensional arrays
 // constructor(size)
 
 // obscured [...descriptors]
-// revealed [...]
-    // cell descriptor = row:col
+// revealed [...descriptors]
 // cells {
 //   descriptor: state
 // }
+
+// cell descriptor = row:col
 
 // state
 //  hidden
@@ -248,8 +249,9 @@ function print() {
 
 // check val
 // check done
-
-// print
+// obscured.length vs mines count
 
 // build board for display on print
-// array(size).fill()
+// new Array(size).fill * new array(size).fill
+// map both collections and add value to output
+
