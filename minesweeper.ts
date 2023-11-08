@@ -1,6 +1,8 @@
 type Board = (number|string)[][];
 type Cell = [number, number];
 const MINE = '💥';
+const EMPTY = ' ';
+const BOMB = '💣';
 
 class Minesweeper {
     board: Board;
@@ -79,7 +81,7 @@ class Minesweeper {
                     const borderY = Math.abs(cellColumn - mineColumn) <= 1;
                     return borderX && borderY;
                 }) || [];
-                return bordered.length === 0 ? ' ' : bordered.length;
+                return bordered.length === 0 ? EMPTY : bordered.length;
             });
         });
     }
@@ -102,7 +104,11 @@ class Minesweeper {
         const board = this.win ? this.board : this.visible;
         let s = `${prepend}`;
         board.forEach(row => {
-            s += `${row.join('   ')}\n\n`;
+            const defused = this.win ? row.map((c) => {
+                if (c === MINE) return BOMB;
+                return c;
+            }) : row;
+            s += `${defused.join('   ')}\n\n`;
         });
         console.log(s);
     }
@@ -120,7 +126,7 @@ class Minesweeper {
             }
             this.visible[row][col] = val;
             
-            if (val === 0) {
+            if (val === EMPTY) {
                 const neighboring = this.getNeighboringCells(row,col);
                 neighboring.forEach((([a, b]: Cell) => {
                     this.reveal(a+1, b+1)
@@ -142,7 +148,10 @@ class Minesweeper {
     checkIfDone() {
         return this.visible.every((row, rowI) => row.every((cell, colI) => 
                 typeof cell === 'number' || 
-                typeof cell === 'string' && this.board[rowI][colI] == 'X'
+                typeof cell === 'string' && (
+                    cell == EMPTY ||
+                    this.board[rowI][colI] == MINE
+                )
             )
         );
     }
