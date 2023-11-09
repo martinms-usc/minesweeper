@@ -1,8 +1,10 @@
+'use strict';
+const Table = require('cli-table');
 type Board = (number|string)[][];
 type Cell = [number, number];
 const MINE = '💥';
 const EMPTY = ' ';
-const BOMB = '💣';
+const DEFUSED = '💣';
 
 class Minesweeper {
     board: Board;
@@ -101,16 +103,21 @@ class Minesweeper {
     }
     
     print(prepend: string = '') {
+        let output = `${prepend}`;
         const board = this.win ? this.board : this.visible;
-        let s = `${prepend}`;
-        board.forEach(row => {
-            const defused = this.win ? row.map((c) => {
-                if (c === MINE) return BOMB;
-                return c;
-            }) : row;
-            s += `${defused.join('   ')}\n\n`;
+        const gridRows = board.map(row => {
+            return row.map((c) => {
+                if (this.win && c == MINE) return DEFUSED;
+                return c.toString();
+            });
         });
-        console.log(s);
+        var table = new Table({
+            colWidths: new Array(this.width).fill(5),
+            rows: gridRows,
+            colAligns: new Array(this.width).fill('middle')
+        });
+        output += table.toString();
+        console.log(output);
     }
     
     reveal(rowInput: number, colInput: number): Board | 'WIN' | 'LOSE' {
@@ -121,7 +128,7 @@ class Minesweeper {
             const val = this.board[row][col];
             if (val === MINE) {
                 this.visible[row][col] = val;
-                console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n\n');
+                console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n');
                 return 'LOSE';
             }
             this.visible[row][col] = val;
@@ -138,7 +145,7 @@ class Minesweeper {
         }
 
         if (this.checkIfDone()) {
-            console.log('\x1b[32m\n\n !  !  ! VICTORY !  !  ! \n\n');
+            console.log('\x1b[32m\n !  !  ! VICTORY !  !  ! \n');
             this.win = true;
             return 'WIN';
         }
