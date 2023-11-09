@@ -1,10 +1,13 @@
 'use strict';
 const Table = require('cli-table');
-type Board = (number|string)[][];
+
+type CellValue = string|number;
+type Board = CellValue[][];
 type Cell = [number, number];
 const MINE = '💥';
 const EMPTY = ' ';
 const DEFUSED = '💣';
+const OBSCURED = '-';
 
 class Minesweeper {
     board: Board;
@@ -18,22 +21,38 @@ class Minesweeper {
         this.width = width;
         this.board = this.buildBoard(height, width, mines);
         this.visible = new Array(height).fill(null).map(r => (
-            new Array(width).fill('-')
+            new Array(width).fill(OBSCURED)
         ));
         this.win = false;
     }
     
     autoGuess() {
         let remainingCells: Cell[] = [];
-        // one of the cells with the lowest sum of bordering cells
-        const nextBestGuess = (): Cell => {
-            remainingCells = this.getRemainingCells();
+        let remainingCount: number;
+        let minesFound: number = 0;
+
+        const getNextBestGuess = (): Cell => {
+            remainingCells = this.getRemainingObscuredCells();
+            remainingCount = remainingCells.length;
+
+            this.getVisibleMineAdjoiningCells().forEach(([row, col]) => {
+                const obscuredneighbors = this.getNeighboringCells(row, col, OBSCURED);
+                // if obscured neighbors == mine count, discard those obscured cells
+                if (obscuredneighbors.length === this.visible[row][col]) {
+                    obscuredneighbors.forEach(([mineRow, mineCol]) => {
+                        remainingCells = remainingCells.filter(([rRow, rCol]) => !(rRow == mineRow && rCol == mineCol));
+                    });
+                }
+            });
+            minesFound = remainingCount - remainingCells.length;
+
+            // choose one from lowest bordered sum
             const remainingCellDetails = remainingCells.map(([r, c]) => {
                 const borderSum = this.getNeighboringSum(r, c);
                 return {
                     location: [r, c] as [number, number],
                     borderSum
-                }
+                };
             });
             const lowestSum = remainingCellDetails.reduce((min: null | number, cell) => {
                 if (typeof min !== 'number' || cell.borderSum < min) {
@@ -42,14 +61,16 @@ class Minesweeper {
                 return min;
             }, null);
             const lowestMineCounts = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
+
             return lowestMineCounts[Math.floor(Math.random() * lowestMineCounts.length)].location;
         };
         
         let result;
         while (typeof result !== 'string') {
-            const guess = nextBestGuess();
-            console.log(`reveal: row ${guess[0]} col ${guess[1]}, ${remainingCells.length} remaining\n`);
-            result = m.reveal(++guess[0], ++guess[1]);
+            const guess = getNextBestGuess();
+            const mines = minesFound > 0 ? `, ${minesFound} known mine${minesFound > 1 ? 's' : ''}` : '';
+            console.log(`reveal: row ${guess[0]+1} col ${guess[1]+1}, ${remainingCells.length} remaining${mines}\n`);
+            result = m.reveal(guess[0]+1, guess[1]+1);
             if (typeof result !== 'string')
                 this.print();
         }
@@ -76,7 +97,7 @@ class Minesweeper {
     
     fillMineCounts(mines: Cell[], board: Board): Board {
         return board.map((row, cellRow) => {
-            return row.map((val: string | number, cellColumn: number) => {
+            return row.map((val: CellValue, cellColumn: number) => {
                 if (val === MINE) return MINE;
                 const bordered = mines.filter(([mineRow, mineColumn]) => { 
                     const borderX = Math.abs(cellRow - mineRow) <= 1;
@@ -117,14 +138,14 @@ class Minesweeper {
             colAligns: new Array(this.width).fill('middle')
         });
         output += table.toString();
-        console.log(output);
+        console.log(output + '\n');
     }
     
     reveal(rowInput: number, colInput: number): Board | 'WIN' | 'LOSE' {
         const row = rowInput -1;
         const col = colInput -1;
 
-        if (this.visible[row][col] === '-') {
+        if (this.visible[row][col] === OBSCURED) {
             const val = this.board[row][col];
             if (val === MINE) {
                 this.visible[row][col] = val;
@@ -163,19 +184,27 @@ class Minesweeper {
         );
     }
     
-    getRemainingCells(): Cell[] {
+    getCells(cellMatchCb: (v: CellValue) => boolean) {
         const cells: Cell[] = [];
-        
+
         this.visible.forEach((row, rowI) => {
             row.forEach((val, col) => {
-                if (val === '-') {
+                if (cellMatchCb(val)) {
                     cells.push([rowI, col]);
                 }
-            })
-        })
+            });
+        });
         return cells;
     }
-    
+
+    getRemainingObscuredCells(): Cell[] {
+        return this.getCells((v: CellValue) => v === OBSCURED);
+    }
+
+    getVisibleMineAdjoiningCells(): Cell[] {
+        return this.getCells((v: CellValue) => typeof v == 'number');
+    }
+
     getNeighboringSum(row: number, column: number): number {
         const cells = this.getNeighboringCells(row, column);
         return cells.reduce((t, [r, c]) => {
@@ -187,19 +216,21 @@ class Minesweeper {
         }, 0);
     }
 
-    getNeighboringCells(row: number, column: number): Cell[] {
+    getNeighboringCells(row: number, column: number, valueMatch?: CellValue): Cell[] {
         const neighbors: Cell[] = [];
 
-        for (let r = row-1; r <= row+1; r++) {
+        for (let r = row -1; r <= row +1; r ++) {
             if (r < 0 || r >= this.height) continue;
             
             for (let c = column -1; c <= column +1; c++) {
                 if (r == row && c == this.width) continue;
                 if (c > this.width) continue;
                 
-                const cell: Cell = [r, c];
                 if (c >= 0 && r >= 0 && !(r == row && c == column)) {
-                    neighbors.push(cell);
+                    const v = this.visible[r][c];
+                    if (!valueMatch || (valueMatch && v == valueMatch)) {
+                        neighbors.push([r, c]);
+                    }
                 }
             }
         }
