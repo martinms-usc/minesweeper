@@ -15,7 +15,7 @@ class Minesweeper {
     height: number;
     width: number;
     win: boolean;
-    
+
     constructor (height: number, width: number, mines: number) {
         this.height = height;
         this.width = width;
@@ -25,52 +25,100 @@ class Minesweeper {
         ));
         this.win = false;
     }
-    
-    autoGuess() {
+
+    autoPlay() {
+        const knownMines: Cell[] = [];
         let remainingCells: Cell[] = [];
-        let remainingCount: number;
-        let minesFound: number = 0;
+        const matchKnownMines = ([row, column]: Cell) => !knownMines.find(([mR, mC]) => (mR == row && mC == column));
+        // find number cells with neighbor count == value, filter
+        // infer empty cell if all neighboring mines are filtered, return cell
+        const findMinesReturnEmptyCell = (): Cell|void => {
+            const numbered = this.getNumberCells();
+            let next: Cell | null = null;
+            for (const [cellR, cellC] of numbered)  {
+                const numberValue = this.visible[cellR][cellC];
+                let neighboringGuesses = this.getNeighboringCells(cellR, cellC, OBSCURED);
 
-        const getNextBestGuess = (): Cell => {
-            remainingCells = this.getRemainingObscuredCells();
-            remainingCount = remainingCells.length;
-
-            this.getVisibleMineAdjoiningCells().forEach(([row, col]) => {
-                const obscuredneighbors = this.getNeighboringCells(row, col, OBSCURED);
-                // if obscured neighbors == mine count, discard those obscured cells
-                if (obscuredneighbors.length === this.visible[row][col]) {
-                    obscuredneighbors.forEach(([mineRow, mineCol]) => {
-                        remainingCells = remainingCells.filter(([rRow, rCol]) => !(rRow == mineRow && rCol == mineCol));
+                if (neighboringGuesses.length === numberValue) {
+                    neighboringGuesses.forEach(([mineRow, mineCol]) => {
+                        const alreadyKnown = !!knownMines.find(([r,c]) =>  r === mineRow && c === mineCol);
+                        if (!alreadyKnown) {
+                            knownMines.push([mineRow,mineCol]);
+                        }
                     });
                 }
-            });
-            minesFound = remainingCount - remainingCells.length;
+                // filter remaining by mine locations and check again for known empty cells
+                const beforeFilter = neighboringGuesses.length;
+                neighboringGuesses = neighboringGuesses.filter(matchKnownMines);
+                const afterFilter = neighboringGuesses.length;
+                // if all neighboring mines are known, return any other obscured neighbors
+                if (neighboringGuesses.length && beforeFilter - afterFilter == numberValue) {
+                    const [first] = neighboringGuesses;
+                    next = first;
+                }
+            }
+            remainingCells = remainingCells.filter(matchKnownMines);
+            if (next) return next;
+        };
 
-            // choose one from lowest bordered sum
+        const getNextBestGuess = (): Cell => {
+            const emptyCell = findMinesReturnEmptyCell();
+            if (emptyCell) {
+                return emptyCell;
+            }
+            remainingCells = this.getRemainingObscuredCells().filter(matchKnownMines);
+            // rank by cell neighboring sum / obscured neighbors  (zscore)
+            // zscore is a rough approximation of the relative likelihood that this cell is a mine
             const remainingCellDetails = remainingCells.map(([r, c]) => {
                 const borderSum = this.getNeighboringSum(r, c);
+                const remainingNeighborCells = this.getNeighboringCells(r, c, OBSCURED).filter(matchKnownMines);
+                const zScore = remainingNeighborCells.length ? borderSum / remainingNeighborCells.length : Infinity;
                 return {
                     location: [r, c] as [number, number],
-                    borderSum
+                    borderSum,
+                    zScore
                 };
-            });
+            })
+            // find lowest neighboring sums
             const lowestSum = remainingCellDetails.reduce((min: null | number, cell) => {
                 if (typeof min !== 'number' || cell.borderSum < min) {
                     min = cell.borderSum;
                 }
                 return min;
             }, null);
-            const lowestMineCounts = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
-
-            return lowestMineCounts[Math.floor(Math.random() * lowestMineCounts.length)].location;
+            
+            // TODO: use the NUMBER of mine adjoining neighbors ?
+                // obscured neighbors - mine adjoining neighbors
+            
+            // choose random free square if any
+            if (lowestSum == 0) {
+                const noNeighboringMines = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
+                return noNeighboringMines[Math.floor(Math.random() * noNeighboringMines.length)].location;
+            }
+            // return lowest zscore
+            return remainingCellDetails.sort((a, b) => {
+                if (a.borderSum < b.borderSum) return -1;
+                if (a.borderSum == b.borderSum) {
+                    if (a.zScore < b.zScore) return -1;
+                    return 1;
+                }
+                return 1;
+            })[0].location;
         };
         
         let result;
         while (typeof result !== 'string') {
-            const guess = getNextBestGuess();
-            const mines = minesFound > 0 ? `, ${minesFound} known mine${minesFound > 1 ? 's' : ''}` : '';
-            console.log(`reveal: row ${guess[0]+1} col ${guess[1]+1}, ${remainingCells.length} remaining${mines}\n`);
-            result = m.reveal(guess[0]+1, guess[1]+1);
+            const guessZeroIndexed = getNextBestGuess();
+            const guess = guessZeroIndexed.map(v => ++v);
+            const oneIndexed = knownMines.map(([r,c]) => ([++r, ++c]));
+            const minesFound = knownMines.length;
+            const mines = minesFound > 0 ?
+                `,\x1b[35m ${minesFound} mine${minesFound > 1 ? 's' : ''} found\n${oneIndexed.join(' ')}` :
+                '';
+            console.log(`${remainingCells.length} remaining${mines}`);
+            console.log('\x1b[37mreveal:', guess);
+
+            result = m.reveal(guess[0], guess[1]);
             if (typeof result !== 'string')
                 this.print();
         }
@@ -201,7 +249,7 @@ class Minesweeper {
         return this.getCells((v: CellValue) => v === OBSCURED);
     }
 
-    getVisibleMineAdjoiningCells(): Cell[] {
+    getNumberCells(): Cell[] {
         return this.getCells((v: CellValue) => typeof v == 'number');
     }
 
@@ -262,7 +310,7 @@ function check (r: number, c: number) {
 }
 
 function auto () {
-    return m.autoGuess();
+    return m.autoPlay();
 }
 
 function newgame(n: number = 4) {
