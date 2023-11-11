@@ -26,14 +26,15 @@ class Minesweeper {
         this.win = false;
     }
 
+    // 🤖
     autoPlay() {
         const knownMines: Cell[] = [];
-        let remainingCells: Cell[] = [];
-        const matchKnownMines = ([row, column]: Cell) => !knownMines.find(([mR, mC]) => (mR == row && mC == column));
-        // find number cells with neighbor count == value, filter
+        let remainingCells: Cell[] = this.getRemainingObscuredCells();
+        // find number cells with obscured neighbor count == current cell value, filter
         // infer empty cell if all neighboring mines are filtered, return cell
         const findMinesReturnEmptyCell = (): Cell|void => {
             const numbered = this.getNumberCells();
+            remainingCells = this.getRemainingObscuredCells();
             let next: Cell | null = null;
             for (const [cellR, cellC] of numbered)  {
                 const numberValue = this.visible[cellR][cellC];
@@ -41,8 +42,8 @@ class Minesweeper {
 
                 if (neighboringGuesses.length === numberValue) {
                     neighboringGuesses.forEach(([mineRow, mineCol]) => {
-                        const alreadyKnown = !!knownMines.find(([r,c]) =>  r === mineRow && c === mineCol);
-                        if (!alreadyKnown) {
+                        const alreadyFound = !!knownMines.find(([r,c]) =>  r === mineRow && c === mineCol);
+                        if (!alreadyFound) {
                             knownMines.push([mineRow,mineCol]);
                         }
                     });
@@ -60,23 +61,25 @@ class Minesweeper {
             remainingCells = remainingCells.filter(matchKnownMines);
             if (next) return next;
         };
+        const matchKnownMines = ([row, column]: Cell) => !knownMines.find(([mR, mC]) => (mR == row && mC == column));
 
         const getNextBestGuess = (): Cell => {
             const emptyCell = findMinesReturnEmptyCell();
             if (emptyCell) {
                 return emptyCell;
             }
-            remainingCells = this.getRemainingObscuredCells().filter(matchKnownMines);
-            // rank by cell neighboring sum / obscured neighbors  (zscore)
-            // zscore is a rough approximation of the relative likelihood that this cell is a mine
+            // rank by cell neighboring sum &  zScore (sum / obscured neighbors)
+            // zScore is a crude approximation of the relative likelihood that this cell is a mine
             const remainingCellDetails = remainingCells.map(([r, c]) => {
                 const borderSum = this.getNeighboringSum(r, c);
                 const remainingNeighborCells = this.getNeighboringCells(r, c, OBSCURED).filter(matchKnownMines);
                 const zScore = remainingNeighborCells.length ? borderSum / remainingNeighborCells.length : Infinity;
+                const neighborDelta = remainingNeighborCells.length - this.getNeighboringCells(r,c, 'number').length;
                 return {
                     location: [r, c] as [number, number],
                     borderSum,
-                    zScore
+                    zScore,
+                    moreNeighborsThanMines: neighborDelta > 0
                 };
             })
             // find lowest neighboring sums
@@ -86,16 +89,16 @@ class Minesweeper {
                 }
                 return min;
             }, null);
-            
-            // TODO: use the NUMBER of mine adjoining neighbors ?
-                // obscured neighbors - mine adjoining neighbors
-            
             // choose random free square if any
             if (lowestSum == 0) {
                 const noNeighboringMines = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
                 return noNeighboringMines[Math.floor(Math.random() * noNeighboringMines.length)].location;
             }
-            // return lowest zscore
+            // if any have more obscured neighbors than numbered
+            const higherConfidence = remainingCellDetails.find(c => c.moreNeighborsThanMines);
+            if (higherConfidence)
+                return higherConfidence.location;
+            // return lowest bordersum or zScore
             return remainingCellDetails.sort((a, b) => {
                 if (a.borderSum < b.borderSum) return -1;
                 if (a.borderSum == b.borderSum) {
@@ -314,6 +317,8 @@ function auto () {
 }
 
 function newgame(n: number = 4) {
+    // const mines = Math.floor((n) * Math.log(n-1));
+    // console.log('mines', mines)
     m = new Minesweeper(n,n,n-1);
     m.print();
 }
