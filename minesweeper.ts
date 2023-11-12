@@ -25,14 +25,13 @@ class Minesweeper {
         ));
         this.win = false;
     }
-
     // 🤖
     autoPlay() {
         const knownMines: Cell[] = [];
         let remainingCells: Cell[] = this.getRemainingObscuredCells();
         // find number cells with obscured neighbor count == current cell value, filter
         // infer empty cell if all neighboring mines are filtered, return cell
-        const findMinesReturnEmptyCell = (): Cell|void => {
+        const findMinesFilterRemainingReturnEmptyCell = (): Cell|void => {
             const numbered = this.getNumberCells();
             remainingCells = this.getRemainingObscuredCells();
             let next: Cell | null = null;
@@ -54,17 +53,17 @@ class Minesweeper {
                 const afterFilter = neighboringGuesses.length;
                 // if all neighboring mines are known, return any other obscured neighbors
                 if (neighboringGuesses.length && beforeFilter - afterFilter == numberValue) {
-                    const [first] = neighboringGuesses;
-                    next = first;
+                    [next] = neighboringGuesses;
                 }
             }
             remainingCells = remainingCells.filter(matchKnownMines);
             if (next) return next;
         };
         const matchKnownMines = ([row, column]: Cell) => !knownMines.find(([mR, mC]) => (mR == row && mC == column));
+        const isNumber = (v: CellValue) => typeof v == 'number';
 
         const getNextBestGuess = (): Cell => {
-            const emptyCell = findMinesReturnEmptyCell();
+            const emptyCell = findMinesFilterRemainingReturnEmptyCell();
             if (emptyCell) {
                 return emptyCell;
             }
@@ -74,14 +73,14 @@ class Minesweeper {
                 const borderSum = this.getNeighboringSum(r, c);
                 const remainingNeighborCells = this.getNeighboringCells(r, c, OBSCURED).filter(matchKnownMines);
                 const zScore = remainingNeighborCells.length ? borderSum / remainingNeighborCells.length : Infinity;
-                const neighborDelta = remainingNeighborCells.length - this.getNeighboringCells(r,c, 'number').length;
+                const neighborDelta = remainingNeighborCells.length - this.getNeighboringCells(r,c, undefined, isNumber).length;
                 return {
                     location: [r, c] as [number, number],
                     borderSum,
                     zScore,
-                    moreNeighborsThanMines: neighborDelta > 0
+                    moreNeighborsThanMines: neighborDelta > 0 // not just isPositive, but use value later
                 };
-            })
+            });
             // find lowest neighboring sums
             const lowestSum = remainingCellDetails.reduce((min: null | number, cell) => {
                 if (typeof min !== 'number' || cell.borderSum < min) {
@@ -112,7 +111,7 @@ class Minesweeper {
         let result;
         while (typeof result !== 'string') {
             const guessZeroIndexed = getNextBestGuess();
-            const guess = guessZeroIndexed.map(v => ++v);
+            const guess = guessZeroIndexed.map(v => ++v) as Cell;
             const oneIndexed = knownMines.map(([r,c]) => ([++r, ++c]));
             const minesFound = knownMines.length;
             const mines = minesFound > 0 ?
@@ -120,17 +119,11 @@ class Minesweeper {
                 '';
             console.log(`${remainingCells.length} remaining${mines}`);
             console.log('\x1b[37mreveal:', guess);
-
-            result = m.reveal(guess[0], guess[1]);
+            result = m.reveal(...guess);
             if (typeof result !== 'string')
                 this.print();
         }
-        if (typeof result == 'string') {
-            if (result === 'LOSE')
-                this.print('\x1b[31m');
-            if (result === 'WIN')
-                this.print('\x1b[32m');
-        }
+        this.print();
     }
     
     buildBoard(height: number, width: number, mines: number): Board {
@@ -267,21 +260,21 @@ class Minesweeper {
         }, 0);
     }
 
-    getNeighboringCells(row: number, column: number, valueMatch?: CellValue): Cell[] {
+    getNeighboringCells(row: number, column: number, valueMatch?: CellValue, valueCompare?: (v: CellValue) => boolean): Cell[] {
         const neighbors: Cell[] = [];
-
-        for (let r = row -1; r <= row +1; r ++) {
+        for (let r = row -1; r <= row +1; r++) {
             if (r < 0 || r >= this.height) continue;
             
             for (let c = column -1; c <= column +1; c++) {
-                if (r == row && c == this.width) continue;
-                if (c > this.width) continue;
+                if (r == row && c == column) continue;
+                if (c < 0 || c >= this.width) continue;
                 
-                if (c >= 0 && r >= 0 && !(r == row && c == column)) {
-                    const v = this.visible[r][c];
-                    if (!valueMatch || (valueMatch && v == valueMatch)) {
-                        neighbors.push([r, c]);
-                    }
+                const v = this.visible[r][c];
+                if (typeof valueCompare == 'undefined' && (typeof valueMatch == 'undefined' || v == valueMatch)) {
+                    neighbors.push([r, c]);
+                }
+                if (typeof valueMatch == 'undefined' && (typeof valueCompare == 'undefined' || valueCompare(v))) {
+                    neighbors.push([r, c]);
                 }
             }
         }
