@@ -64,9 +64,8 @@ class Minesweeper {
 
         const getNextBestGuess = (): Cell => {
             const emptyCell = findMinesFilterRemainingReturnEmptyCell();
-            if (emptyCell) {
+            if (emptyCell)
                 return emptyCell;
-            }
             // rank by cell neighboring sum &  zScore (sum / obscured neighbors)
             // zScore is a crude approximation of the relative likelihood that this cell is a mine
             const remainingCellDetails = remainingCells.map(([r, c]) => {
@@ -305,14 +304,28 @@ function check (r: number, c: number) {
     return m.check(r,c);
 }
 
+function go (r: number, c: number) {
+    return m.check(r,c);
+}
+
 function auto () {
     return m.autoPlay();
 }
 
-function newgame(n: number = 4) {
-    // const mines = Math.floor((n) * Math.log(n-1));
-    // console.log('mines', mines)
-    m = new Minesweeper(n,n,n-1);
+const easy = 'easy';
+const medium = 'medium';
+const hard = 'hard';
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+function newgame(n: number = 4, difficulty: Difficulty = easy) {
+    const mineRates = {
+        [easy]: 0.15,
+        [medium]: 0.18,
+        [hard]: 0.2
+    };
+    const mineCount = Math.floor((n ** 2) * mineRates[difficulty]);
+    m = new Minesweeper(n, n, mineCount);
+    console.log(mineCount + ' mines')
     m.print();
 }
 
@@ -320,29 +333,24 @@ function print() {
     m.print();
 }
 
+// TODO: minesweeper game in linear time
 
-// TODO: minesweeper in linear time
+// decomposed data structure instead of 2x 2-dimensional arrays
 
-// unifying data structure instead of 2x 2-dimensional arrays
 // constructor(size)
-
 // obscured [...descriptors]
 // revealed [...descriptors]
 // cells {
-//   descriptor: state
+//   descriptor: value
 // }
 
 // cell descriptor = row:col
+//   value: whitespace, number, or X (string|number)
 
-// state
-//  hidden
-//  value: whitespace, number, or X (string|number)
-
-// on reveal, update cell state, filter from obscured, push revealed,
+// on reveal, filter from obscured, push revealed
 
 // check val
-// check done
-// obscured.length vs mines count
+// check done (obscured.length vs mines count)
 
 // build board for display on print
 // new Array(size).fill * new array(size).fill
