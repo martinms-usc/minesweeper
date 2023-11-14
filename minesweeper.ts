@@ -6,7 +6,7 @@ type Board = CellValue[][];
 type Cell = [number, number];
 const MINE = '💥';
 const EMPTY = ' ';
-const DEFUSED = '💣';
+const DEFUSED = '⛳️';
 const OBSCURED = '-';
 
 class Minesweeper {
@@ -25,7 +25,8 @@ class Minesweeper {
         ));
         this.win = false;
     }
-    // 🤖
+
+    // 🤖 minesweeper bot
     autoPlay() {
         const knownMines: Cell[] = [];
         let remainingCells: Cell[] = this.getRemainingObscuredCells();
@@ -77,7 +78,7 @@ class Minesweeper {
                     location: [r, c] as [number, number],
                     borderSum,
                     zScore,
-                    moreNeighborsThanMines: neighborDelta > 0 // not just isPositive, but use value later
+                    neighborDelta
                 };
             });
             // find lowest neighboring sums
@@ -92,10 +93,15 @@ class Minesweeper {
                 const noNeighboringMines = remainingCellDetails.filter(cell => cell.borderSum === lowestSum);
                 return noNeighboringMines[Math.floor(Math.random() * noNeighboringMines.length)].location;
             }
-            // if any have more obscured neighbors than numbered
-            const higherConfidence = remainingCellDetails.find(c => c.moreNeighborsThanMines);
-            if (higherConfidence)
-                return higherConfidence.location;
+            // if any have more obscured neighbors than numbered, the one with the greatest difference
+            const higherConfidence = remainingCellDetails.find(c => c.neighborDelta > 0);
+            if (!!higherConfidence) {
+                const sorted = remainingCellDetails.sort((a, b) => {
+                        if (a.neighborDelta > b.neighborDelta) return -1;
+                        return 1
+                    });
+                return sorted[0].location;
+            }
             // return lowest bordersum or zScore
             return remainingCellDetails.sort((a, b) => {
                 if (a.borderSum < b.borderSum) return -1;
@@ -118,54 +124,51 @@ class Minesweeper {
                 '';
             console.log(`${remainingCells.length} remaining${mines}`);
             console.log('\x1b[37mreveal:', guess);
-            result = m.reveal(...guess);
-            if (typeof result !== 'string')
-                this.print();
+            result = m.check(...guess);
         }
-        this.print();
     }
     
     buildBoard(height: number, width: number, mines: number): Board {
         const mineLocations = this.getRandomCells(height, width, mines);
-        const board = new Array(height).fill(null).map(r => (
+        const board: Board = new Array(height).fill(null).map(r =>
             new Array(width).fill(null)
-        ));        
-
+        );
         mineLocations.forEach(([row, column]: [number, number]) => {
             board[row].splice(column, 1, MINE);
         });
-
         return this.fillMineCounts(mineLocations, board);;
     }
-    
+
     fillMineCounts(mines: Cell[], board: Board): Board {
-        return board.map((row, cellRow) => {
-            return row.map((val: CellValue, cellColumn: number) => {
+        return board.map((row, cellRowIdx) => {
+            return row.map((val: CellValue, cellColumnIdx: number) => {
                 if (val === MINE) return MINE;
                 const bordered = mines.filter(([mineRow, mineColumn]) => { 
-                    const borderX = Math.abs(cellRow - mineRow) <= 1;
-                    const borderY = Math.abs(cellColumn - mineColumn) <= 1;
+                    const borderX = Math.abs(cellRowIdx - mineRow) <= 1;
+                    const borderY = Math.abs(cellColumnIdx - mineColumn) <= 1;
                     return borderX && borderY;
                 }) || [];
                 return bordered.length === 0 ? EMPTY : bordered.length;
             });
         });
     }
-    
-    check(r: number, i: number) {
+
+    check(r: number, i: number): ReturnType<typeof this.reveal> {
         if (r > this.height || i > this.width) {
             console.log('\x1b[31mOUT OF BOUNDS');
-            return;
+            return this.visible;
         }
-        
-        let result = this.reveal(r,i);
+        const result = this.reveal(r,i);
         if (result === 'LOSE') {
-            this.print('\x1b[31m');
+            this.print('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n');
+        } else if (result === 'WIN') {
+            this.print('\x1b[32m\n !  !  ! VICTORY !  !  ! \n');
         } else {
             this.print();
         }
+        return result;
     }
-    
+
     print(prepend: string = '') {
         let output = `${prepend}`;
         const board = this.win ? this.board : this.visible;
@@ -192,7 +195,6 @@ class Minesweeper {
             const val = this.board[row][col];
             if (val === MINE) {
                 this.visible[row][col] = val;
-                console.log('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n');
                 return 'LOSE';
             }
             this.visible[row][col] = val;
@@ -204,12 +206,7 @@ class Minesweeper {
                 }).bind(this));
             }
         }
-        if (this.visible[row][col] == MINE) {
-            this.print('\x1b[31m YOU LOSE ');
-        }
-
         if (this.checkIfDone()) {
-            console.log('\x1b[32m\n !  !  ! VICTORY !  !  ! \n');
             this.win = true;
             return 'WIN';
         }
@@ -341,18 +338,20 @@ function print() {
 // obscured [...descriptors]
 // revealed [...descriptors]
 // cells {
-//   descriptor: value
+//   descriptor: cellValue
 // }
 
-// cell descriptor = row:col
-//   value: whitespace, number, or X (string|number)
+// cell descriptor = "row:col"
+//   value: whitespace, number, or MINE (string|number)
 
-// on reveal, filter from obscured, push revealed
-
+// on reveal:
 // check val
-// check done (obscured.length vs mines count)
+// filter from obscured, push revealed
+// check done (obscured.length === mines count)
 
 // build board for display on print
-// new Array(size).fill * new array(size).fill
 // map both collections and add value to output
+
+//  return new Array(size).fill(null).map((r, rowI) =>
+//      new Array(size).fill(null).map((col, colI) => cells[`${rowI}:${colI}`]))
 
