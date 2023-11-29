@@ -16,7 +16,7 @@ go(row, col)
 ```
 Start a new game:
 ```
-newgame(size = 4, difficulty = "medium")
+newgame(size = 5, difficulty = "medium")
 ```
 
 Bot play:
