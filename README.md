@@ -16,16 +16,18 @@ go(row, col)
 ```
 Start a new game:
 ```
-newgame(size, difficulty)
-// board width & height = size
-// defaults to size = 4, difficulty "medium"
+newgame(size = 4, difficulty = "medium")
+// size = board width & height
 ```
 
 Bot play:
 ```
 sweep()
-// use a best-guess algorithm for auto select
 ```
+About the Bot:
+* use a process of elimination algorithm to discover mines and find empty cells
+* next choose a cell with no revealed neighbors
+* if no known empty cells, use a best-guess algorithm
 
 
 Example:
