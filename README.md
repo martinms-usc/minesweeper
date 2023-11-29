@@ -5,19 +5,22 @@ REPL Minesweeper game for command line time wasting
 * Try `autog()` automated play if you're feelin' lucky
 
 
-Reveal a cell:
+Reveal a cell (cells are 1-indexed):
 ```
-guess(row, col)
+go(row, col)
 ```
 Start a new game:
 ```
-newgame(size)
+newgame(size, difficulty)
 // board width & height = size
-// defaults to size = 4
+// defaults to size = 4, difficulty "medium"
+
+type difficulty = "easy" | "medium" | "hard"
 ```
-Auto play:
+
+Try the minesweeper bot 🤖:
 ```
-auto()
+sweep()
 // use a best-guess algorithm for auto select
 ```
 Print:
@@ -53,7 +56,7 @@ Example:
 
 -   -   -   -
 
-> newgame()
+> newgame(4)
 
 -   -   -   -
 

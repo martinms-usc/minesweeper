@@ -39,7 +39,6 @@ class Minesweeper {
             for (const [cellR, cellC] of numbered)  {
                 const numberValue = this.visible[cellR][cellC];
                 let neighboringGuesses = this.getNeighboringCells(cellR, cellC, OBSCURED);
-
                 if (neighboringGuesses.length === numberValue) {
                     neighboringGuesses.forEach(([mineRow, mineCol]) => {
                         const alreadyFound = !!knownMines.find(([r,c]) =>  r === mineRow && c === mineCol);
@@ -107,12 +106,10 @@ class Minesweeper {
                 if (a.borderSum < b.borderSum) return -1;
                 if (a.borderSum == b.borderSum) {
                     if (a.zScore < b.zScore) return -1;
-                    return 1;
                 }
                 return 1;
             })[0].location;
         };
-        
         let result;
         while (typeof result !== 'string') {
             const guessZeroIndexed = getNextBestGuess();
@@ -128,7 +125,7 @@ class Minesweeper {
         }
     }
     
-    buildBoard(height: number, width: number, mines: number): Board {
+    private buildBoard(height: number, width: number, mines: number): Board {
         const mineLocations = this.getRandomCells(height, width, mines);
         const board: Board = new Array(height).fill(null).map(r =>
             new Array(width).fill(null)
@@ -139,7 +136,7 @@ class Minesweeper {
         return this.fillMineCounts(mineLocations, board);;
     }
 
-    fillMineCounts(mines: Cell[], board: Board): Board {
+    private fillMineCounts(mines: Cell[], board: Board): Board {
         return board.map((row, cellRowIdx) => {
             return row.map((val: CellValue, cellColumnIdx: number) => {
                 if (val === MINE) return MINE;
@@ -162,7 +159,7 @@ class Minesweeper {
         if (result === 'LOSE') {
             this.print('\x1b[31m\n   * /  `\n ~ . BOOM ~ * \n   ` * ~ \n');
         } else if (result === 'WIN') {
-            this.print('\x1b[32m\n !  !  ! VICTORY !  !  ! \n');
+            this.print('\x1b[32m\n !  !  ! VICTORY !  !  ! \n\n');
         } else {
             this.print();
         }
@@ -294,27 +291,19 @@ class Minesweeper {
     }
 }
 
-let m = new Minesweeper(4, 4, 3);
-m.print();
 
-function check (r: number, c: number) {
-    return m.check(r,c);
-}
+//**       globals        */
 
-function go (r: number, c: number) {
-    return m.check(r,c);
-}
 
-function auto () {
-    return m.autoPlay();
-}
+const easy = 'easy' as const;
+const medium = 'medium' as const;
+const hard = 'hard' as const;
 
-const easy = 'easy';
-const medium = 'medium';
-const hard = 'hard';
-type Difficulty = 'easy' | 'medium' | 'hard';
+type Difficulty = typeof easy | typeof medium | typeof hard;
 
-function newgame(n: number = 4, difficulty: Difficulty = easy) {
+var m: Minesweeper = startNewGame(4, medium);
+
+function startNewGame(n: number = 5, difficulty: Difficulty = medium): Minesweeper {
     const mineRates = {
         [easy]: 0.15,
         [medium]: 0.18,
@@ -324,13 +313,28 @@ function newgame(n: number = 4, difficulty: Difficulty = easy) {
     m = new Minesweeper(n, n, mineCount);
     console.log(mineCount + ' mines')
     m.print();
+    return m;
+}
+
+function newgame(n: number = 5, difficulty: Difficulty = medium): void {
+    m = startNewGame(n, difficulty);
+}
+
+function go (r: number, c: number) {
+    m.check(r,c);
+}
+
+function sweep () {
+    return m.autoPlay();
 }
 
 function print() {
     m.print();
 }
 
-// TODO: minesweeper game in linear time
+
+//**     optimizations?      */
+
 
 // decomposed data structure instead of 2x 2-dimensional arrays
 
