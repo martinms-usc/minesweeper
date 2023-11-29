@@ -17,7 +17,6 @@ go(row, col)
 Start a new game:
 ```
 newgame(size = 4, difficulty = "medium")
-// size = board width & height
 ```
 
 Bot play:
