@@ -1,6 +1,6 @@
 REPL Minesweeper game for command line time wasting
 
-* Variable board size
+* Variable board size & 3 difficulty levels
 * Try `sweep()` to see the bot play 🤖
 * Difficulty is a proportion of mine cells:
 
