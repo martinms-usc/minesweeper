@@ -1,9 +1,14 @@
 REPL Minesweeper game for command line time wasting
 
 * Variable board size
-* Amount of mines is size - 1
-* Try `autog()` automated play if you're feelin' lucky
+* Try `sweep()` to see the bot play 🤖
+* Difficulty is a proportion of mine cells:
 
+```
+easy:    15%
+medium:  18%
+hard:    20%
+```
 
 Reveal a cell (cells are 1-indexed):
 ```
@@ -14,20 +19,14 @@ Start a new game:
 newgame(size, difficulty)
 // board width & height = size
 // defaults to size = 4, difficulty "medium"
-
-type difficulty = "easy" | "medium" | "hard"
 ```
 
-Try the minesweeper bot 🤖:
+Bot play:
 ```
 sweep()
 // use a best-guess algorithm for auto select
 ```
-Print:
-```
-print()
-// prints current state of the board
-```
+
 
 Example:
 ```
