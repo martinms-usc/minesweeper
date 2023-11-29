@@ -32,6 +32,7 @@ About the Bot:
 
 Example:
 ```
+~/minesweeper: npm install
 ~/minesweeper: npm start
 
 2 mines
