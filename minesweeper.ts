@@ -301,7 +301,7 @@ const hard = 'hard' as const;
 
 type Difficulty = typeof easy | typeof medium | typeof hard;
 
-var m: Minesweeper = startNewGame(4, medium);
+var m: Minesweeper = startNewGame(5, medium);
 
 function startNewGame(n: number = 5, difficulty: Difficulty = medium): Minesweeper {
     const mineRates = {
